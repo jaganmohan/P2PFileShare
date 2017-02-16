@@ -56,32 +56,32 @@ public class ConfigParser
 			}
 		}
 
-		public int getNumberOfPreferredNeighbors() 
+		public static int getNumberOfPreferredNeighbors() 
 		{
 			return numberOfPreferredNeighbors;
 		}
 
-		public int getUnchokingInterval() 
+		public static int getUnchokingInterval() 
 		{
 			return unchokingInterval;
 		}
 
-		public int getOptimisticUnchokingInterval() 
+		public static int getOptimisticUnchokingInterval() 
 		{
 			return optimisticUnchokingInterval;
 		}
 
-		public String getFileName() 
+		public static String getFileName() 
 		{
 			return fileName;
 		}
 
-		public int getFileSize() 
+		public static int getFileSize() 
 		{
 			return fileSize;
 		}
 
-		public int getPieceSize() 
+		public static int getPieceSize() 
 		{
 			return pieceSize;
 		}
