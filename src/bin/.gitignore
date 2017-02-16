@@ -1,0 +1,15 @@
+/.classpath
+/.project
+/BitfieldPayload.class
+/HandShakeMsg.class
+/HavePayload.class
+/Logger.class
+/Message.class
+/Payload.class
+/Peer.class
+/PeerProcess.class
+/PiecePayload.class
+/RequestPayload.class
+/src/
+/PeerProcess$1.class
+/PeerProcess$2.class

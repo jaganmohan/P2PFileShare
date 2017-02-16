@@ -1,4 +1,4 @@
-package src;
+
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -85,13 +85,14 @@ public class PeerProcess extends Peer{
         }).start();
     }
     
-    public static void main(String[] args) throws IOException {
-    	
-    	getConfiguration();
-        //startServer();
-        //startSender();
-    }
-    
+	public static void main(String[] args) throws IOException 
+	{
+
+//	    	getConfiguration();
+//	        startServer();
+//	        startSender();
+	}
+	
     public static void getConfiguration()
 	{
 		String st;
