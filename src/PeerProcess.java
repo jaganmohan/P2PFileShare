@@ -88,7 +88,7 @@ public class PeerProcess extends Peer{
 	public static void main(String[] args) throws IOException 
 	{
 
-//	    	getConfiguration();
+	    	getConfiguration();
 //	        startServer();
 //	        startSender();
 	}
@@ -99,7 +99,7 @@ public class PeerProcess extends Peer{
 		try {
 			String hostname = InetAddress.getLocalHost().getHostName();
 			
-			String FileName = System.getProperty("user.dir")+"/PeerInfo.cfg";
+			String FileName = "../PeerInfo.cfg";
 			
 			BufferedReader in = new BufferedReader(new FileReader(FileName));
 			
