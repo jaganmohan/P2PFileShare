@@ -87,8 +87,11 @@ public class PeerProcess extends Peer{
     
 	public static void main(String[] args) throws IOException 
 	{
-
+			
+			ConfigParser p = new ConfigParser();
+			System.out.println(p.getFileSize());
 	    	getConfiguration();
+	    	
 //	        startServer();
 //	        startSender();
 	}
