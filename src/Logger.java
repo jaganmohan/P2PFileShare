@@ -21,7 +21,7 @@ public class Logger {
 		}
 	}
 	
-	//[Time]: Peer [peer_ID 1] <msg> [peer_ID 2].
+	//[Time]: Peer [peer_ID 1] <message> [peer_ID 2].
 	
 	public void connect(int ID)
 	{

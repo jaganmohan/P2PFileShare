@@ -17,6 +17,4 @@ public class Message {
 		mType = type;
 		mPayload = payload;
 	}
-	
-
 }
