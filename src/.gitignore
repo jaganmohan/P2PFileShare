@@ -1,0 +1,12 @@
+/Message.class
+/HandShakeMsg.class
+/PeerProcess$1.class
+/PeerProcess$2.class
+/PeerProcess.class
+/Payload.class
+/BitfieldPayload.class
+/HavePayload.class
+/PiecePayload.class
+/RequestPayload.class
+/P2Pfileshare.class
+/Peer.class

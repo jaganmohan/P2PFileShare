@@ -111,7 +111,7 @@ public class PeerProcess extends Peer{
 				}
 				try {
 					sSocket = new ServerSocket(Integer.parseInt(tokens[2]));
-					lSocket = sSocket.accept();
+					//lSocket = sSocket.accept();
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					System.out.println("Error opening socket");
