@@ -1,8 +1,12 @@
+package src;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -10,18 +14,18 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 
-public class PeerProcess extends Peer{
+public class PeerProcess extends Peer implements Runnable{
 	
 	//Stores the peer process objects in a map
 	private static HashMap<Integer,Peer> peers = new HashMap<Integer,Peer>();
 	
 	//Singleton object for Peer process
-	private static PeerProcess peerProcess;
+	//private static PeerProcess peerProcess;
 	
 	//Server socket for this peer
-	private static ServerSocket sSocket;
+	private ServerSocket sSocket;
 	//listening socket
-	private static Socket lSocket;
+	//private Socket lSocket;
 	
 	public PeerProcess(String pid, String hName, String portno, String present){
 		super(pid,hName,portno,present);
@@ -31,67 +35,55 @@ public class PeerProcess extends Peer{
 		super(pid,hName,portno,present);
 	}
 	
-    public static void startSender(String host, int port) {
+	public void startSender(Peer pNeighbor) {
+    	Peer pHost = this;
         (new Thread() {
             @Override
             public void run() {
                 try {
-                    Socket s = new Socket(host, port);
-                    BufferedWriter out = new BufferedWriter(
-                            new OutputStreamWriter(s.getOutputStream()));
+                    Socket s = new Socket(pNeighbor.getHostname(), pNeighbor.getPortNo());
+                    ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-                    while(true)
-                    {
-                    	System.out.print("Hello, please input a sentence: ");
-                        String message = bufferedReader.readLine();
+                    	System.out.println("Handshake Message sent from peer "+pHost.getPeerId()+" to peer "+pNeighbor.getPeerId());
+                    	//String message = pHost.getPeerId()+": Hello Peer "+pNeighbor.getPeerId();
                     	                   	
-                        out.write(message);
-                        out.newLine();
+                        out.writeObject(new HandShakeMsg(pHost.getPeerId()));
                         out.flush();
 
-                        Thread.sleep(200);
-                    }
 
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
         }).start();
     }
 
-    public static void startServer() {
-    	Socket s = lSocket;
-        (new Thread() {
-            @Override
-            public void run() {
-                try {
-                    BufferedReader in = new BufferedReader(
-                            new InputStreamReader(s.getInputStream()));
-                    String line = null;
-                    while ((line = in.readLine()) != null) {
-                        System.out.println(line);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+    public void startServer(){
+
+    	(new Thread() {
+    		@Override
+    		public void run() {
+    			while(!sSocket.isClosed()){
+    				try {
+    					Socket lSocket = sSocket.accept();
+    					ObjectInputStream in = new ObjectInputStream(lSocket.getInputStream());
+    					HandShakeMsg incoming = (HandShakeMsg)in.readObject();
+    					System.out.println("Received Handshake Message : "+incoming.PeerID+" Header - "+incoming.Header);
+    				} catch (IOException | ClassNotFoundException e) {
+    					e.printStackTrace();
+    				}
+    			}
+    		}
+    	}).start();
     }
     
 	public static void main(String[] args) throws IOException 
-	{
-			
-			
+	{			
 			System.out.println(ConfigParser.getFileName());
 	    	getConfiguration();
 	    	
-//	        startServer();
-//	        startSender();
 	}
 	
     public static void getConfiguration()
@@ -100,7 +92,7 @@ public class PeerProcess extends Peer{
 		try {
 			String hostname = InetAddress.getLocalHost().getHostName();
 			
-			String FileName = "../PeerInfo.cfg";
+			String FileName = "PeerInfo.cfg";
 			
 			BufferedReader in = new BufferedReader(new FileReader(FileName));
 			
@@ -109,15 +101,7 @@ public class PeerProcess extends Peer{
 				Peer peer = new Peer(tokens[0],tokens[1],tokens[2],tokens[3]);
 				peers.put(Integer.parseInt(tokens[0]),peer);
 				if(tokens[1].trim().equals(hostname)){
-					peerProcess = new PeerProcess(tokens[0],tokens[1],tokens[2],tokens[3]);
-				}
-				try {
-					sSocket = new ServerSocket(Integer.parseInt(tokens[2]));
-					lSocket = sSocket.accept();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					System.out.println("Error opening socket");
-					e.printStackTrace();
+					new Thread(new PeerProcess(tokens[0],tokens[1],tokens[2],tokens[3])).start();
 				}
 			}
 			
@@ -125,6 +109,24 @@ public class PeerProcess extends Peer{
 		}
 		catch (Exception ex) {
 			System.out.println(ex.toString());
+		}
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		try {
+    		sSocket = new ServerSocket(this.getPortNo());
+    	} catch (Exception e) {
+    		// TODO Auto-generated catch block
+    		System.out.println("Error opening socket");
+    		e.printStackTrace();
+    	}
+		for(Integer id: peers.keySet()){
+			if(id!=this.getPeerId()){
+				startServer();
+				startSender(peers.get(id));
+			}
 		}
 	}
 }

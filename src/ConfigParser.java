@@ -1,3 +1,5 @@
+package src;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -17,7 +19,7 @@ public class ConfigParser
 		{
 			try 
 			{
-				BufferedReader in = new BufferedReader(new FileReader("../Common.cfg"));
+				BufferedReader in = new BufferedReader(new FileReader("Common.cfg"));
 				String line;
 				while ((line = in.readLine()) != null) 
 				{

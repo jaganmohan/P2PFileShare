@@ -1,3 +1,5 @@
+package src;
+
 public class FilePiece 
 {
 		private byte[] content = null;
