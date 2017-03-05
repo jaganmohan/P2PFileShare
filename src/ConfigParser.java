@@ -30,7 +30,7 @@ public class ConfigParser
 					switch (name)
 					{
 						case "NumberOfPreferredNeighbors":
-							numberOfPreferredNeighbors = Integer.parseInt(value);
+							numberOfPreferredNeighbors = Integer.parseInt(value)+1;
 							break;
 						case "UnchokingInterval":
 							unchokingInterval = Integer.parseInt(value);

@@ -13,3 +13,11 @@
 /RequestPayload.class
 /PeerProcess$1.class
 /PeerProcess$2.class
+/MessageType.class
+/ConnectionHandler.class
+/ProcessHandler.class
+/PeerProcess$3.class
+/PeerHandler.class
+/PeerHandler$1.class
+/PeerHandler$2.class
+/PeerHandler$3.class

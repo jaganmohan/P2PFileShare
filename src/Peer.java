@@ -1,11 +1,20 @@
 package src;
 
+/**
+ * This stores peer information, each peer object created will correspond to some entry in configuration file
+ * @author Jagan
+ *
+ */
 public class Peer {
 
 	private int peerId;
 	private String hostname;
 	private int portNo;
 	private short filePresent;
+	private byte[] bitfield;
+	private boolean unchoked;
+	private long downloadSpeed;
+	
 	public int getPeerId() {
 		return peerId;
 	}
@@ -30,6 +39,24 @@ public class Peer {
 	public void setFilePresent(short filePresent) {
 		this.filePresent = filePresent;
 	}
+	public void setBitfield(byte[] _bf){
+		bitfield = _bf;
+	}
+	public byte[] getBitfield(){
+		return bitfield;
+	}
+	public void setUnchoked(boolean state){
+		unchoked = state;
+	}
+	public boolean isUnchoked(){
+		return unchoked;
+	}
+	public void setDownloadSpeed(long ds){
+		downloadSpeed = ds;
+	}
+	public long getDownloadSpeed(){
+		return downloadSpeed;
+	}
 	
 	public Peer(){}
 	
@@ -45,5 +72,17 @@ public class Peer {
 		this.setHostname(hName);
 		this.setPortNo(portno);
 		this.setFilePresent(present);
+	}
+	
+	/**
+	 * Updates bitfield of a neighbor on receiving have message
+	 * @param index
+	 */
+	public void updateBitfield(long index){
+		int i = (int)(index/8);
+		int u = (int)(index%8);
+		byte update = 1;
+		update = (byte)(update << u-1);
+		bitfield[i] = (byte)(bitfield[i]&update);
 	}
 }

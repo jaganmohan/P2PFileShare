@@ -6,27 +6,35 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
+
+import util.FileUtilities;
 
 public class FileManager 
 {
-	private int pieceSize = 0;
+	private static boolean[] filePiecesOwned;
+	
+	private static final int noOfFilePieces = ConfigParser.getFileSize()/8;
+
+	private static byte[] bitfield = new byte[noOfFilePieces];
+		
+	private static int noOfPiecesAvailable = 0;
+	
 	private String directory = null;
 	private String fileName = null;
 	private int fileSize = 0;
 	private File file = null;
-	
-//	private BitField bitField = null;
-	
-//	public BitField getBitField() {
-//		return bitField;
-//	}
+		
+	public byte[] getBitField() throws Exception {
+		return createBitfield(filePiecesOwned);
+	}
 
-	public FileManager(int peerid, boolean has) 
+	public FileManager(int peerid) 
 	{
 		directory = "../peer_" + peerid + "/";
-		pieceSize = ConfigParser.getPieceSize();
 		fileName = ConfigParser.getFileName();
-		fileSize = ConfigParser.getFileSize();
+		filePiecesOwned = new boolean[fileSize];
+		
 		File folder = new File(directory);
 
 		if (!folder.exists()) 
@@ -49,11 +57,6 @@ public class FileManager
 				e.printStackTrace();
 			}
 		}
-		
-//		bitField = new BitField((int) (Math.ceil((float) fileSize / pieceSize)));
-//		if (has) {
-//			bitField.setAll();
-//		}
 	}
 	
 	public FilePiece get(int index) 
@@ -61,10 +64,10 @@ public class FileManager
 		try 
 		{
 			FileInputStream fis = new FileInputStream(file);
-			int loc = pieceSize * index;
+			int loc = ConfigParser.getPieceSize() * index;
 			fis.skip(loc);
-			int contentSize = pieceSize;
-			if (fileSize - loc < pieceSize)
+			int contentSize = ConfigParser.getPieceSize();
+			if (fileSize - loc < ConfigParser.getPieceSize())
 				contentSize = fileSize - loc;
 			byte[] content = new byte[contentSize];
 			fis.read(content);
@@ -82,7 +85,7 @@ public class FileManager
 
 	public void store(FilePiece piece) 
 	{
-		int loc = pieceSize * piece.getIndex();
+		int loc = ConfigParser.getPieceSize() * piece.getIndex();
 		RandomAccessFile fos = null;
 		try {
 			fos = new RandomAccessFile(file, "rw");
@@ -97,5 +100,28 @@ public class FileManager
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	public byte[] createBitfield(boolean[] pieces) throws Exception{
+		
+		if(noOfPiecesAvailable == 0)
+			return null;
+		
+		for(int i=0;i<noOfFilePieces;i=i+8){
+			bitfield[noOfPiecesAvailable++] = FileUtilities.boolToByte(Arrays.copyOfRange(filePiecesOwned, i, i+8));
+		}
+		
+		return bitfield;
+	}
+	
+	public boolean compareBitfields(byte[] neighborBitfield, byte[] interesting){
+		boolean flag = false;
+		if(neighborBitfield == null) return flag;
+		for(int i=0;i<bitfield.length;i++){
+			interesting[i] = (byte) ((bitfield[i]^neighborBitfield[i])&neighborBitfield[i]);
+			if(interesting[i] != 0)
+				flag = true;
+		}
+		return flag;
 	}
 }

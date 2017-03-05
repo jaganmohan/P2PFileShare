@@ -7,22 +7,31 @@ public class HandShakeMsg implements Serializable
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
-	String Header;
-	int PeerID;
+	private static final long serialVersionUID = -8034174401138365022L;
+
+	static final String Header = "P2PFILESHARINGPROJ";
+	private final String _header;
+	private int peerID;
 	
 	public HandShakeMsg (int peerID) 
 	{
-		this.PeerID = peerID;
+		this.peerID = peerID;
 		//TODO 10 byte zero bits using BitSet
-		Header = "P2PFILESHARINGPROJ";
+		_header = Header;
+	}
+	public int getPeerId(){
+		return peerID;
+	}
+	
+	public String getHeader(){
+		return _header;
 	}
 	
 	@Override
     public String toString()
     {
-        String msgString = "Header :"+this.Header+"\n";
-        msgString = msgString+"Peer ID: "+PeerID; 
+        String msgString = "Header :"+this._header+"\n";
+        msgString = msgString+"Peer ID: "+peerID; 
         return msgString;
     }
 	
@@ -30,7 +39,7 @@ public class HandShakeMsg implements Serializable
 	{  
 		ObjectOutputStream ostream = new ObjectOutputStream(out);  			  
 		ostream.writeObject(this);
-		System.out.println("sending handshake message with peer" + this.PeerID);
+		System.out.println("sending handshake message with peer" + this.peerID);
 	}
 	
 	//return value could be changed to HandShakeMsg if header is also needed
@@ -42,7 +51,7 @@ public class HandShakeMsg implements Serializable
 			HandShakeMsg Response = (HandShakeMsg)istream.readObject();  
 			if (Response != null) 
 			{		
-				return Response.PeerID;	
+				return Response.peerID;	
 			}
 			else {
 				return -1;
