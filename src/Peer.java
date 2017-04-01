@@ -14,6 +14,7 @@ public class Peer {
 	private byte[] bitfield;
 	private boolean unchoked;
 	private long downloadSpeed;
+	private ConnectionHandler conn;
 	
 	public int getPeerId() {
 		return peerId;
@@ -45,7 +46,7 @@ public class Peer {
 	public byte[] getBitfield(){
 		return bitfield;
 	}
-	public void setUnchoked(boolean state){
+	public void unChoke(boolean state){
 		unchoked = state;
 	}
 	public boolean isUnchoked(){
@@ -56,6 +57,12 @@ public class Peer {
 	}
 	public long getDownloadSpeed(){
 		return downloadSpeed;
+	}
+	public void setConnHandler(ConnectionHandler c){
+		conn = c;
+	}
+	public ConnectionHandler getConn(){
+		return conn;
 	}
 	
 	public Peer(){}

@@ -2,6 +2,7 @@ package src;
 
 import java.net.ServerSocket;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Random;
@@ -10,6 +11,9 @@ import java.util.TreeSet;
 public class PeerHandler extends Thread{
 		
 	private ServerSocket sSocket;
+	
+	//Stores the peer process objects in a map
+	private static HashMap<Integer,Peer> peers;
 
 	private TreeSet<Peer> interested = new TreeSet<Peer>(new Comparator<Peer>() {
 		Random r = new Random();
@@ -27,8 +31,9 @@ public class PeerHandler extends Thread{
 	
 	public PeerHandler(){}
 	
-	public PeerHandler(ServerSocket s){
+	public PeerHandler(ServerSocket s, HashMap<Integer,Peer> peers){
 		sSocket = s;
+		this.peers = peers;
 	}
 	
 	public void add(Peer i){
@@ -42,6 +47,7 @@ public class PeerHandler extends Thread{
 			public void run(){
 				try{
 					synchronized(interested){
+						// reselecting k preferred peers in time intervals of 'UnchokingInterval' from config
 						do{
 							kPeers = new ArrayList<Peer>();
 							Iterator<Peer> it = interested.iterator();
@@ -51,6 +57,7 @@ public class PeerHandler extends Thread{
 								kPeers.add(p);
 								unchokePeer(p);
 							}
+							chokePeers();
 							wait(timeout);
 						}while(!sSocket.isClosed());
 					}
@@ -69,8 +76,16 @@ public class PeerHandler extends Thread{
 			public void run(){
 				try{
 					synchronized(interested){
+						// reselecting optimistic peer in time intervals of 'OptimisticUnchokingInterval' from config
 						do{
-							
+							Peer p;
+							Random r = new Random();
+							Peer[] prs = (Peer[]) interested.toArray();
+							do{
+								p = prs[r.nextInt(prs.length)];
+							}while(!p.isUnchoked());
+							optUnchokedPeer = p;
+							unchokePeer(p);
 							wait(timeout);
 						}while(!sSocket.isClosed());
 					}
@@ -83,11 +98,14 @@ public class PeerHandler extends Thread{
 	}
 	
 	public void unchokePeer(Peer p){
-		
+		p.unChoke(true);
+		//send unchoke message to peer p
+		Message msgUnchoke = new Message(MessageType.UNCHOKE, null);
+		p.getConn().sendMessage(msgUnchoke);
 	}
 	
 	public void chokePeers(){
-		
+		//choke all other peers not in map kPeers
 	}
 	
 	public void run(){

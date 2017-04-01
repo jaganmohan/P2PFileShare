@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
+import java.util.Hashtable;
 
 import util.FileUtilities;
 
@@ -14,10 +15,13 @@ public class FileManager
 {
 	private static boolean[] filePiecesOwned;
 	
-	private static final int noOfFilePieces = ConfigParser.getFileSize()/8;
+	private static Hashtable<Integer, Integer> requestedPieces = new Hashtable<Integer, Integer>();
+	
+	private static final int noOfFilePieces = ConfigParser.getFileSize();
 
-	private static byte[] bitfield = new byte[noOfFilePieces];
-		
+	//Each bit in bitfield corresponds to one file piece
+	private static byte[] bitfield = new byte[(int)Math.ceil(noOfFilePieces/8)];
+	
 	private static int noOfPiecesAvailable = 0;
 	
 	private String directory = null;
@@ -33,7 +37,7 @@ public class FileManager
 	{
 		directory = "../peer_" + peerid + "/";
 		fileName = ConfigParser.getFileName();
-		filePiecesOwned = new boolean[fileSize];
+		filePiecesOwned = new boolean[noOfFilePieces];
 		
 		File folder = new File(directory);
 
@@ -114,8 +118,9 @@ public class FileManager
 		return bitfield;
 	}
 	
-	public boolean compareBitfields(byte[] neighborBitfield, byte[] interesting){
+	public boolean compareBitfields(byte[] neighborBitfield){
 		boolean flag = false;
+		byte[] interesting = new byte[noOfFilePieces];
 		if(neighborBitfield == null) return flag;
 		for(int i=0;i<bitfield.length;i++){
 			interesting[i] = (byte) ((bitfield[i]^neighborBitfield[i])&neighborBitfield[i]);
@@ -123,5 +128,20 @@ public class FileManager
 				flag = true;
 		}
 		return flag;
+	}
+	
+	public static int requestPiece(byte[] neighborBitfield){
+		byte[] interesting = new byte[(int)Math.ceil(noOfFilePieces/8)];
+		boolean[] interestingPieces = new boolean[noOfFilePieces];
+		for(int i=0,j=0;i<bitfield.length;i++,j=j+8){
+			interesting[i] = (byte) ((bitfield[i]^neighborBitfield[i])&neighborBitfield[i]);
+			System.arraycopy(FileUtilities.byteToBoolean(interesting[i]), 0, interestingPieces, j, 8);
+		}
+		for(int i=0; i<noOfFilePieces; i++){
+			if(interestingPieces[i] == true && !requestedPieces.containsKey(i))
+				return i;
+		}
+		// TODO make it fail safe
+		return 0;
 	}
 }

@@ -37,6 +37,12 @@ class BitfieldPayload extends Payload{
 class RequestPayload extends Payload{
 	// 4-byte piece index field we will index from -2,147,483,648 to 2,147,483,647
 	private int index;
+	public RequestPayload(int idx){
+		index = idx;
+	}
+	public int getIndex(){
+		return index;
+	}
 }
 
 class PiecePayload extends Payload{

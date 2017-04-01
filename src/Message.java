@@ -13,17 +13,21 @@ public class Message implements Serializable{
 	private int mLength;
 	
 	// Message Type
-	private byte mType;
+	private MessageType mType;
 	
 	// Message payload
 	Payload mPayload;
 	
 	public Message(){}
 	
-	public Message(byte type, Payload payload){
+	public Message(MessageType type, Payload payload){
 		mType = type;
 		mPayload = payload;
-		mLength = payload.getMsgLength()+1;
+		mLength = payload == null?0:payload.getMsgLength()+1;
+	}
+	
+	public MessageType getMsgType(){
+		return mType;
 	}
 }
 
