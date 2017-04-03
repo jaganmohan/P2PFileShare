@@ -43,12 +43,12 @@ public class PeerProcess extends Peer implements Runnable{
 	
 	public PeerProcess(String pid, String hName, String portno, String present){
 		super(pid,hName,portno,present);
-		pHandler = new PeerHandler(sSocket, peers);
+		pHandler = new PeerHandler(sSocket, peers, this.getInstance());
 	}
 	
 	public PeerProcess(int pid, String hName, int portno, short present){
 		super(pid,hName,portno,present);
-		pHandler = new PeerHandler(sSocket, peers);
+		pHandler = new PeerHandler(sSocket, peers, this.getInstance());
 	}
 	
 	public void startSender(Peer pNeighbor, ConnectionHandler conn) {
@@ -144,6 +144,7 @@ public class PeerProcess extends Peer implements Runnable{
     	ObjectInputStream in = new ObjectInputStream(lSocket.getInputStream());
     	ObjectOutputStream out = new ObjectOutputStream(lSocket.getOutputStream());
 
+    	//Receiving Handshake message
     	HandShakeMsg incoming = (HandShakeMsg)in.readObject();
     	if(peers.get(incoming.getPeerId()) == null || !incoming.getHeader().equals(HandShakeMsg.Header)){
     		System.out.println("Error performing Handshake : PeerId or Header unknown");
@@ -151,31 +152,21 @@ public class PeerProcess extends Peer implements Runnable{
     	System.out.println("Received Handshake Message : "+
     			incoming.getPeerId()+" Header - "+incoming.getHeader());
     	
-    	//Exchanging Handshake message
+    	//Sending Handshake message
     	HandShakeMsg outgoing = new HandShakeMsg(getPeerId());
     	out.writeObject(outgoing);
         out.flush();
     	System.out.println("Handshake Message sent from peer "+getPeerId()+" to peer "+incoming.getPeerId());                    	                   	
         
-    	//Exchanging Bitfield message
-    	Message in_bitfieldMsg = (Message)in.readObject();
-    	BitfieldPayload in_payload = (BitfieldPayload)(in_bitfieldMsg.mPayload);
-    	System.out.println("Received Bitfield Message from : "+incoming.getPeerId());
+    	//Sending Bitfield message
     	BitfieldPayload out_payload = new BitfieldPayload(fileData.getBitField());
         out.writeObject(new Message(MessageType.BITFIELD, out_payload));
         out.flush();
     	
-        //setting bitfield for the neighbor peer
-        peers.get(incoming.getPeerId()).setBitfield(in_payload.getBitfield());
-    	if(!fileData.compareBitfields(in_payload.getBitfield())){
-    		System.out.println("Peer "+incoming.getPeerId()+" does not contain any interesting file pieces");
-    	}
-    	
     	Peer neighbor = peers.get(incoming.getPeerId());
-		System.out.println("Peer "+incoming.getPeerId()+" contains interesting file pieces, establishing connection");
 		pHandler.add(neighbor);
 		
-		//Creating connection assuming both are interested
+		//Creating connection irrespective of peers being interested
 		ConnectionHandler conn = new ConnectionHandler(neighbor, peers.get(incoming.getPeerId()),
 				in, out, lSocket);
 		neighbor.setConnHandler(conn);

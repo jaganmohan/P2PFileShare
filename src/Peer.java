@@ -64,6 +64,9 @@ public class Peer {
 	public ConnectionHandler getConn(){
 		return conn;
 	}
+	public Peer getInstance(){
+		return this;
+	}
 	
 	public Peer(){}
 	
@@ -82,7 +85,7 @@ public class Peer {
 	}
 	
 	/**
-	 * Updates bitfield of a neighbor on receiving have message
+	 * Updates bitfield of a Peer on receiving have message
 	 * @param index
 	 */
 	public void updateBitfield(long index){

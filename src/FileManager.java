@@ -17,7 +17,9 @@ public class FileManager
 	
 	private static Hashtable<Integer, Integer> requestedPieces = new Hashtable<Integer, Integer>();
 	
-	private static final int noOfFilePieces = ConfigParser.getFileSize();
+	private static int piecesize = ConfigParser.getPieceSize();
+	
+	private static final int noOfFilePieces = ConfigParser.getFileSize()/piecesize;
 
 	//Each bit in bitfield corresponds to one file piece
 	private static byte[] bitfield = new byte[(int)Math.ceil(noOfFilePieces/8)];
@@ -118,7 +120,7 @@ public class FileManager
 		return bitfield;
 	}
 	
-	public boolean compareBitfields(byte[] neighborBitfield){
+	public static boolean compareBitfields(byte[] neighborBitfield){
 		boolean flag = false;
 		byte[] interesting = new byte[noOfFilePieces];
 		if(neighborBitfield == null) return flag;
@@ -143,5 +145,12 @@ public class FileManager
 		}
 		// TODO make it fail safe
 		return 0;
+	}
+	
+	public static boolean hasCompleteFile(){
+		
+		if(noOfPiecesAvailable < noOfFilePieces)
+			return false;
+		return true;
 	}
 }

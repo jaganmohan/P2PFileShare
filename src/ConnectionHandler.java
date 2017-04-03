@@ -5,6 +5,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+/**
+ * Contains connection related information between host peer and neighboring peer including object streams
+ * to read and write from the connection.
+ * 
+ * @author Jagan
+ *
+ */
 public class ConnectionHandler extends Thread{
 	
 	private Socket sock;
@@ -43,6 +50,11 @@ public class ConnectionHandler extends Thread{
 		try {
 			sout.writeObject(msg);
 		} catch (IOException e) {
+			switch(1){
+				case 1: break;
+				case 2: break;
+				
+			}
 			System.out.println(host.getPeerId()+": Error sending message to "+neighbor.getPeerId());
 			e.printStackTrace();
 		}
@@ -58,26 +70,45 @@ public class ConnectionHandler extends Thread{
 					recv = (Message) sin.readObject();
 					if(recv != null){
 						switch (recv.getMsgType()){
-							case UNCHOKE:
+							case UNCHOKE:{
 								int pieceIdx = FileManager.requestPiece(neighbor.getBitfield());
 								Payload requestPayload = new RequestPayload(pieceIdx);
 								Message msgRequest = new Message(MessageType.REQUEST, requestPayload);
 								sout.writeObject(msgRequest);
-								sout.flush();
+								sout.flush();}
 								break;
 							case CHOKE:
+								//TODO stop sending file pieces
 								break;
-							case HAVE:
-								break;
+							case HAVE:{
+								neighbor.updateBitfield(index);
+								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
+								Message interested = new Message(MessageType.INTERESTED,null);
+								sendMessage(interested);
+								break;}
 							case REQUEST:
+								//TODO send requested file piece to neighbor using FileManager
 								break;
 							case INTERESTED:
 								break;
 							case NOT_INTERESTED:
 								break;
-							case BITFIELD:
-								break;
+							case BITFIELD:{
+						    	BitfieldPayload in_payload = (BitfieldPayload)(recv.mPayload);
+						    	System.out.println("Received Bitfield Message from : "+neighbor.getPeerId());
+						    	//setting bitfield for the neighboring peer
+						        neighbor.setBitfield(in_payload.getBitfield());
+						    	if(!FileManager.compareBitfields(in_payload.getBitfield())){
+						    		System.out.println("Peer "+neighbor.getPeerId()+" does not contain any interesting file pieces");
+						    		Message notInterested = new Message(MessageType.NOT_INTERESTED,null);
+									sendMessage(notInterested);
+						    	}
+								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
+								Message interested = new Message(MessageType.INTERESTED,null);
+								sendMessage(interested);
+								break;}
 							case PIECE:
+								//TODO implement piece additions to the file
 								break;
 						}
 					}
