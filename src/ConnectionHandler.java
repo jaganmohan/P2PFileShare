@@ -81,7 +81,8 @@ public class ConnectionHandler extends Thread{
 								//TODO stop sending file pieces
 								break;
 							case HAVE:{
-								neighbor.updateBitfield(index);
+								HavePayload have = (HavePayload)(recv.mPayload);
+								neighbor.updateBitfield(have.getIndex());
 								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
 								Message interested = new Message(MessageType.INTERESTED,null);
 								sendMessage(interested);
