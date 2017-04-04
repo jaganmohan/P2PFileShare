@@ -9,16 +9,18 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.Hashtable;
 
-import util.FileUtilities;
-
 public class FileManager 
 {
+	/** File pieces owned by the peer */
 	private static boolean[] filePiecesOwned;
-		
+	
+	/** Table to keep track of requested file pieces at any instant so that redundant requests are not made */
 	private static Hashtable<Integer, Integer> requestedPieces = new Hashtable<Integer, Integer>();
 	
+	/** Number of file pieces the file can be broken into */
 	private static final int noOfFilePieces = (int)Math.ceil(ConfigParser.getFileSize()/ConfigParser.getPieceSize());
 
+	/** File pieces available by the peer */
 	private static int noOfPiecesAvailable = 0;
 	
 	private String directory = null;
@@ -89,7 +91,6 @@ public class FileManager
 		}
 	}
 
-
 	public static synchronized void store(PiecePayload piece) 
 	{
 		int loc = ConfigParser.getPieceSize() * piece.getIndex();
@@ -109,10 +110,16 @@ public class FileManager
 		}
 	}
 	
+	/**
+	 * Creates bitfield first time during initialization for the peer
+	 * 
+	 * @param pieces boolean representation of pieces available
+	 * @return byte format of the pieces available
+	 * @throws Exception
+	 */
 	public byte[] createBitfield(boolean[] pieces) throws Exception{
 		
 		byte[] bitfield = new byte[(int)Math.ceil(noOfFilePieces/8)];
-		
 		if(noOfPiecesAvailable == 0)
 			return null;
 		
@@ -124,6 +131,13 @@ public class FileManager
 		return bitfield;
 	}
 	
+	/**
+	 * Compares bitfields of two peers to decide interesting or not interesting
+	 * 
+	 * @param neighborBitfield Neighboring peer's bitfield
+	 * @param bitfield Host peer's bitfield
+	 * @return
+	 */
 	public static boolean compareBitfields(byte[] neighborBitfield, byte[] bitfield){
 		boolean flag = false;
 		byte[] interesting = new byte[noOfFilePieces];
@@ -136,6 +150,13 @@ public class FileManager
 		return flag;
 	}
 	
+	/**
+	 * Randomly requests a file piece to a neighbor which it does not have and has not been requested to other peers
+	 * 
+	 * @param neighborBitfield Neighboring peer's bitfield
+	 * @param bitfield Host peer's bitfield
+	 * @return
+	 */
 	public static int requestPiece(byte[] neighborBitfield, byte[] bitfield){
 		byte[] interesting = new byte[(int)Math.ceil(noOfFilePieces/8)];
 		boolean[] interestingPieces = new boolean[noOfFilePieces];
@@ -152,7 +173,6 @@ public class FileManager
 	}
 	
 	public static boolean hasCompleteFile(){
-		
 		if(noOfPiecesAvailable < noOfFilePieces)
 			return false;
 		return true;

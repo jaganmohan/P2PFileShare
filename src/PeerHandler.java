@@ -26,9 +26,8 @@ public class PeerHandler extends Thread{
 	
 	public PeerHandler(){}
 	
-	public PeerHandler(ServerSocket s, HashMap<Integer,Peer> peers, Peer host){
+	public PeerHandler(ServerSocket s, Peer host){
 		sSocket = s;
-		this.peers = peers;
 		hostPeer = host;
 	}
 	

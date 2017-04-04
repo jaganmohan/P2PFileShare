@@ -29,14 +29,17 @@ public class ConnectionHandler extends Thread{
 	
 	private int piecesDownloaded;
 	
+	private PeerHandler pHandler;
+	
 	public ConnectionHandler(){}
 	
-	public ConnectionHandler(Peer h, Peer n, ObjectInputStream i, ObjectOutputStream o, Socket s){
+	public ConnectionHandler(Peer h, Peer n, ObjectInputStream i, ObjectOutputStream o, Socket s, PeerHandler p){
 		host = h;
 		neighbor = n;
 		sin = i;
 		sout = o;
 		sock = s;
+		pHandler = p;
 	}
 	
 	public void setSocket(Socket s){
@@ -51,11 +54,6 @@ public class ConnectionHandler extends Thread{
 		try {
 			sout.writeObject(msg);
 		} catch (IOException e) {
-			switch(1){
-				case 1: break;
-				case 2: break;
-				
-			}
 			System.out.println(host.getPeerId()+": Error sending message to "+neighbor.getPeerId());
 			e.printStackTrace();
 		}
@@ -87,15 +85,17 @@ public class ConnectionHandler extends Thread{
 								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
 								Message interested = new Message(MessageType.INTERESTED,null);
 								sendMessage(interested);
+								//TODO add to interested peers list
+								pHandler.add(neighbor);
 								break;}
-							case REQUEST:
+							case REQUEST:{
 								//TODO send requested file piece to neighbor using FileManager
 								int requestedIndex = ((RequestPayload)recv.mPayload).getIndex();
 								byte [] pieceContent = FileManager.get(requestedIndex).getContent();
 								int pieceIndex = FileManager.get(requestedIndex).getIndex();
 								Message pieceToSend = new Message(MessageType.PIECE, new PiecePayload(pieceContent, pieceIndex));
 								sendMessage(pieceToSend);
-								break;
+								break;}
 							case INTERESTED:
 								break;
 							case NOT_INTERESTED:
@@ -113,12 +113,14 @@ public class ConnectionHandler extends Thread{
 								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
 								Message interested = new Message(MessageType.INTERESTED,null);
 								sendMessage(interested);
+						    	// Adding interested peers to peer list of PeerHandler object
+								pHandler.add(neighbor);
 								break;}
-							case PIECE:
+							case PIECE:{
 								//TODO implement piece additions to the file
 								FileManager.store((PiecePayload)recv.mPayload);
 								host.updateBitfield(((PiecePayload)recv.mPayload).getIndex());
-								break;
+								break;}
 						}
 					}
 				} catch (ClassNotFoundException | IOException e) {

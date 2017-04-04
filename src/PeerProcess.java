@@ -1,11 +1,8 @@
 package src;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -24,7 +21,7 @@ import java.util.HashMap;
 public class PeerProcess extends Peer implements Runnable{
 	
 	//Stores the peer process objects in a map
-	private static HashMap<Integer,Peer> peers = new HashMap<Integer,Peer>();
+	private HashMap<Integer,Peer> peers = new HashMap<Integer,Peer>();
 	
 	private final PeerHandler pHandler;
 	
@@ -36,47 +33,45 @@ public class PeerProcess extends Peer implements Runnable{
 	
 	private FileManager fileData;
 	
+	public PeerProcess(String pid, String hName, String portno, String present, HashMap<Integer,Peer> peers){
+		super(pid,hName,portno,present);
+		this.peers = peers;
+		pHandler = new PeerHandler(sSocket, this.getInstance());
+	}
+	
+	public PeerProcess(int pid, String hName, int portno, boolean present, HashMap<Integer,Peer> peers){
+		super(pid,hName,portno,present);
+		this.peers = peers;
+		pHandler = new PeerHandler(sSocket, this.getInstance());
+	}
+	
 	/**
-	 * Number of connections active for the peer - only k+1 concurrent connections can be active at any time
-	 * k = number of preferred neighbors
+	 * All the peers will be interested initially except the peer with the complete file, so need to send
+	 * handshake messages to neighboring peers to check their bitfields, essentially broadcasting handshake messages
 	 */
-	
-	public PeerProcess(String pid, String hName, String portno, String present){
-		super(pid,hName,portno,present);
-		pHandler = new PeerHandler(sSocket, peers, this.getInstance());
+	public void startSender() {
+		
+		try {
+			//Sending Handshake message to all other peers
+			for (Peer pNeighbor : peers.values()){
+				Socket s = new Socket(pNeighbor.getHostname(), pNeighbor.getPortNo());
+				ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+				System.out.println("Handshake Message sent from peer "+getPeerId()+" to peer "+pNeighbor.getPeerId());                    	                   	
+				out.writeObject(new HandShakeMsg(getPeerId()));
+				out.flush();
+			}
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e){
+			e.printStackTrace();
+		}
 	}
-	
-	public PeerProcess(int pid, String hName, int portno, boolean present){
-		super(pid,hName,portno,present);
-		pHandler = new PeerHandler(sSocket, peers, this.getInstance());
-	}
-	
-	public void startSender(Peer pNeighbor, ConnectionHandler conn) {
-    	Peer pHost = this;
-        (new Thread() {
-            @Override
-            public void run() {
-                try {
-                    Socket s = new Socket(pNeighbor.getHostname(), pNeighbor.getPortNo());
-                    ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 
-                    	System.out.println("Handshake Message sent from peer "+pHost.getPeerId()+" to peer "+pNeighbor.getPeerId());                    	                   	
-                        out.writeObject(new HandShakeMsg(pHost.getPeerId()));
-                        out.flush();
-                        BitfieldPayload payload = new BitfieldPayload(fileData.getBitField());
-                        out.writeObject(new Message(MessageType.BITFIELD, payload));
-
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (Exception e){
-                	e.printStackTrace();
-                }
-            }
-        }).start();
-    }
-
+	/**
+	 * Starts listening on a socket for handshake message, calls establishConnection method internally
+	 */
 	public void startServer(){
 
 		(new Thread() {
@@ -84,15 +79,8 @@ public class PeerProcess extends Peer implements Runnable{
 			public void run() {
 				while(!sSocket.isClosed()){
 					try {
-						/*(connActive+1 > ConfigParser.getNumberOfPreferredNeighbors()){
-							System.out.println("Number of concurrent connections cannot exceed "+
-									ConfigParser.getNumberOfPreferredNeighbors());
-							ifreturn;
-						}*/
 						ConnectionHandler conn = establishConnection();
 						conn.start();
-						//if(conn != null)
-						//	++connActive;
 					} catch (IOException | ClassNotFoundException e) {
 						e.printStackTrace();
 					} catch (Exception e) {
@@ -104,40 +92,12 @@ public class PeerProcess extends Peer implements Runnable{
 		}).start();
 
 	}
-    
-	public static void main(String[] args) throws IOException 
-	{			
-			System.out.println(ConfigParser.getFileName());
-	    	getConfiguration();
-	    	
-	}
 	
-    public static void getConfiguration()
-	{
-		String st;
-		try {
-			String hostname = InetAddress.getLocalHost().getHostName();
-			
-			String FileName = "PeerInfo.cfg";
-			
-			BufferedReader in = new BufferedReader(new FileReader(FileName));
-			
-			while((st = in.readLine()) != null) {	
-				String[] tokens = st.split("\\s+");
-				Peer peer = new Peer(tokens[0],tokens[1],tokens[2],tokens[3]);
-				peers.put(Integer.parseInt(tokens[0]),peer);
-				if(tokens[1].trim().equals(hostname)){
-					new Thread(new PeerProcess(tokens[0],tokens[1],tokens[2],tokens[3])).start();
-				}
-			}
-			
-			in.close();
-		}
-		catch (Exception ex) {
-			System.out.println(ex.toString());
-		}
-	}
-    
+	/**
+	 * Establishes connection between host peer and neighboring peer	 * 
+	 * @return ConnectionHandler object
+	 * @throws Exception
+	 */
     public ConnectionHandler establishConnection() throws Exception{
 
     	Socket lSocket = sSocket.accept();
@@ -152,40 +112,45 @@ public class PeerProcess extends Peer implements Runnable{
     	System.out.println("Received Handshake Message : "+
     			incoming.getPeerId()+" Header - "+incoming.getHeader());
     	
-    	//Sending Handshake message
-    	HandShakeMsg outgoing = new HandShakeMsg(getPeerId());
-    	out.writeObject(outgoing);
-        out.flush();
-    	System.out.println("Handshake Message sent from peer "+getPeerId()+" to peer "+incoming.getPeerId());                    	                   	
-        
+    	// No need to send Handshake message here again, since all peers will send handshake messages to
+    	// neighboring peers in startSender method as well as there is no place we are receiving second handshake
+    	
     	//Sending Bitfield message
     	BitfieldPayload out_payload = new BitfieldPayload(fileData.getBitField());
         out.writeObject(new Message(MessageType.BITFIELD, out_payload));
         out.flush();
     	
     	Peer neighbor = peers.get(incoming.getPeerId());
-		pHandler.add(neighbor);
 		
 		//Creating connection irrespective of peers being interested
 		ConnectionHandler conn = new ConnectionHandler(neighbor, peers.get(incoming.getPeerId()),
-				in, out, lSocket);
+				in, out, lSocket, pHandler);
 		neighbor.setConnHandler(conn);
 		return conn;
     }
     
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		fileData = new FileManager(getPeerId(), getFilePresent());
 		try {
 			setBitfield(fileData.getBitField());
     		sSocket = new ServerSocket(this.getPortNo());
     	} catch (Exception e) {
-    		// TODO Auto-generated catch block
     		System.out.println("Error opening socket");
     		e.printStackTrace();
     	}
 		startServer();
 		pHandler.start();
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+    	    public void run() {
+    	    	try {
+					sSocket.close();
+				} catch (IOException e) {
+					System.out.println("Error closing socket of peer "+getPeerId());
+					e.printStackTrace();
+				}
+    	    }
+    	}));
 	}
 }
