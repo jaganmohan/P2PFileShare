@@ -46,7 +46,7 @@ public class PeerProcess extends Peer implements Runnable{
 		pHandler = new PeerHandler(sSocket, peers, this.getInstance());
 	}
 	
-	public PeerProcess(int pid, String hName, int portno, short present){
+	public PeerProcess(int pid, String hName, int portno, boolean present){
 		super(pid,hName,portno,present);
 		pHandler = new PeerHandler(sSocket, peers, this.getInstance());
 	}
@@ -176,7 +176,7 @@ public class PeerProcess extends Peer implements Runnable{
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		fileData = new FileManager(getPeerId());
+		fileData = new FileManager(getPeerId(), getFilePresent());
 		try {
 			setBitfield(fileData.getBitField());
     		sSocket = new ServerSocket(this.getPortNo());

@@ -10,7 +10,7 @@ public class Peer {
 	private int peerId;
 	private String hostname;
 	private int portNo;
-	private short filePresent;
+	private boolean filePresent;
 	private byte[] bitfield;
 	private boolean unchoked;
 	private long downloadSpeed;
@@ -34,10 +34,10 @@ public class Peer {
 	public void setPortNo(int portNo) {
 		this.portNo = portNo;
 	}
-	public short getFilePresent() {
+	public boolean getFilePresent() {
 		return filePresent;
 	}
-	public void setFilePresent(short filePresent) {
+	public void setFilePresent(boolean filePresent) {
 		this.filePresent = filePresent;
 	}
 	public void setBitfield(byte[] _bf){
@@ -74,10 +74,13 @@ public class Peer {
 		this.setPeerId(Integer.parseInt(pid));
 		this.setHostname(hName);
 		this.setPortNo(Integer.parseInt(portno));
-		this.setFilePresent(Short.parseShort(present));
+		if(Short.parseShort(present)==0)
+			this.setFilePresent(false);
+		else 
+			this.setFilePresent(true);
 	}
 	
-	public Peer(int pid, String hName, int portno, short present){
+	public Peer(int pid, String hName, int portno, boolean present){
 		this.setPeerId(pid);
 		this.setHostname(hName);
 		this.setPortNo(portno);

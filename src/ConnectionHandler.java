@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+
 /**
  * Contains connection related information between host peer and neighboring peer including object streams
  * to read and write from the connection.
@@ -71,7 +72,7 @@ public class ConnectionHandler extends Thread{
 					if(recv != null){
 						switch (recv.getMsgType()){
 							case UNCHOKE:{
-								int pieceIdx = FileManager.requestPiece(neighbor.getBitfield());
+								int pieceIdx = FileManager.requestPiece(neighbor.getBitfield(), host.getBitfield());
 								Payload requestPayload = new RequestPayload(pieceIdx);
 								Message msgRequest = new Message(MessageType.REQUEST, requestPayload);
 								sout.writeObject(msgRequest);
@@ -89,6 +90,11 @@ public class ConnectionHandler extends Thread{
 								break;}
 							case REQUEST:
 								//TODO send requested file piece to neighbor using FileManager
+								int requestedIndex = ((RequestPayload)recv.mPayload).getIndex();
+								byte [] pieceContent = FileManager.get(requestedIndex).getContent();
+								int pieceIndex = FileManager.get(requestedIndex).getIndex();
+								Message pieceToSend = new Message(MessageType.PIECE, new PiecePayload(pieceContent, pieceIndex));
+								sendMessage(pieceToSend);
 								break;
 							case INTERESTED:
 								break;
@@ -99,7 +105,7 @@ public class ConnectionHandler extends Thread{
 						    	System.out.println("Received Bitfield Message from : "+neighbor.getPeerId());
 						    	//setting bitfield for the neighboring peer
 						        neighbor.setBitfield(in_payload.getBitfield());
-						    	if(!FileManager.compareBitfields(in_payload.getBitfield())){
+						    	if(!FileManager.compareBitfields(in_payload.getBitfield(),host.getBitfield() )){
 						    		System.out.println("Peer "+neighbor.getPeerId()+" does not contain any interesting file pieces");
 						    		Message notInterested = new Message(MessageType.NOT_INTERESTED,null);
 									sendMessage(notInterested);
@@ -110,6 +116,8 @@ public class ConnectionHandler extends Thread{
 								break;}
 							case PIECE:
 								//TODO implement piece additions to the file
+								FileManager.store((PiecePayload)recv.mPayload);
+								host.updateBitfield(((PiecePayload)recv.mPayload).getIndex());
 								break;
 						}
 					}

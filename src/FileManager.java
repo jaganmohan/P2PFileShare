@@ -14,32 +14,33 @@ import util.FileUtilities;
 public class FileManager 
 {
 	private static boolean[] filePiecesOwned;
-	
+		
 	private static Hashtable<Integer, Integer> requestedPieces = new Hashtable<Integer, Integer>();
 	
-	private static int piecesize = ConfigParser.getPieceSize();
-	
-	private static final int noOfFilePieces = ConfigParser.getFileSize()/piecesize;
+	private static final int noOfFilePieces = (int)Math.ceil(ConfigParser.getFileSize()/ConfigParser.getPieceSize());
 
-	//Each bit in bitfield corresponds to one file piece
-	private static byte[] bitfield = new byte[(int)Math.ceil(noOfFilePieces/8)];
-	
 	private static int noOfPiecesAvailable = 0;
 	
 	private String directory = null;
 	private String fileName = null;
-	private int fileSize = 0;
-	private File file = null;
+	private static int fileSize = 0;
+	private static File file = null;
 		
 	public byte[] getBitField() throws Exception {
 		return createBitfield(filePiecesOwned);
 	}
 
-	public FileManager(int peerid) 
+	public FileManager(int peerid , boolean has) 
 	{
 		directory = "../peer_" + peerid + "/";
 		fileName = ConfigParser.getFileName();
+		
 		filePiecesOwned = new boolean[noOfFilePieces];
+		if(has)
+		{
+			Arrays.fill(filePiecesOwned, true);
+			noOfPiecesAvailable = noOfFilePieces;
+		}
 		
 		File folder = new File(directory);
 
@@ -62,10 +63,10 @@ public class FileManager
 			{
 				e.printStackTrace();
 			}
-		}
+		}	
 	}
 	
-	public FilePiece get(int index) 
+	public static synchronized PiecePayload get(int index) 
 	{
 		try 
 		{
@@ -78,7 +79,7 @@ public class FileManager
 			byte[] content = new byte[contentSize];
 			fis.read(content);
 			fis.close();
-			return new FilePiece(content, index);
+			return new PiecePayload(content, index);
 		}catch (FileNotFoundException e) 
 		{
 			return null;
@@ -89,7 +90,7 @@ public class FileManager
 	}
 
 
-	public void store(FilePiece piece) 
+	public static synchronized void store(PiecePayload piece) 
 	{
 		int loc = ConfigParser.getPieceSize() * piece.getIndex();
 		RandomAccessFile fos = null;
@@ -99,9 +100,9 @@ public class FileManager
 			fos.write(piece.getContent());
 			fos.close();
 			
-//			bitField.set(piece.getIndex());
-//			if (bitField.hasAll()) {
-//			}
+			noOfPiecesAvailable++;
+			filePiecesOwned[piece.getIndex()] = true;
+			
 		}catch (IOException e) 
 		{
 			e.printStackTrace();
@@ -110,17 +111,20 @@ public class FileManager
 	
 	public byte[] createBitfield(boolean[] pieces) throws Exception{
 		
+		byte[] bitfield = new byte[(int)Math.ceil(noOfFilePieces/8)];
+		
 		if(noOfPiecesAvailable == 0)
 			return null;
 		
+		int counter = 0;
 		for(int i=0;i<noOfFilePieces;i=i+8){
-			bitfield[noOfPiecesAvailable++] = FileUtilities.boolToByte(Arrays.copyOfRange(filePiecesOwned, i, i+8));
+			bitfield[counter++] = FileUtilities.boolToByte(Arrays.copyOfRange(filePiecesOwned, i, i+8));
 		}
 		
 		return bitfield;
 	}
 	
-	public static boolean compareBitfields(byte[] neighborBitfield){
+	public static boolean compareBitfields(byte[] neighborBitfield, byte[] bitfield){
 		boolean flag = false;
 		byte[] interesting = new byte[noOfFilePieces];
 		if(neighborBitfield == null) return flag;
@@ -132,7 +136,7 @@ public class FileManager
 		return flag;
 	}
 	
-	public static int requestPiece(byte[] neighborBitfield){
+	public static int requestPiece(byte[] neighborBitfield, byte[] bitfield){
 		byte[] interesting = new byte[(int)Math.ceil(noOfFilePieces/8)];
 		boolean[] interestingPieces = new boolean[noOfFilePieces];
 		for(int i=0,j=0;i<bitfield.length;i++,j=j+8){
