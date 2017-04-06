@@ -35,6 +35,11 @@ public class PeerHandler extends Thread{
 		interested.add(i);
 	}
 	
+	public void remove(Peer i) 
+	{
+		interested.remove(i);
+	}
+	
 	public void kPreferredPeers(){
 		
 		long timeout = ConfigParser.getUnchokingInterval()*1000;
@@ -62,6 +67,7 @@ public class PeerHandler extends Thread{
 									&& it.hasNext();i++){
 								Peer p = it.next();
 								// chooses peer adds it to k preferred peers list and unchokes them
+								p.getConn().resetPiecesDownloaded();
 								kPeers.add(p);
 								unchokePeer(p);
 							}
@@ -141,5 +147,23 @@ public class PeerHandler extends Thread{
 	public void run(){
 		kPreferredPeers();
 		optUnchokePeer();
+	}
+	
+	public HashMap<Integer, Peer> getPeerList()
+	{
+		return peers;
+	}
+	
+	public void sendHaveAll(int index)
+	{
+		Message have = new Message(MessageType.HAVE, new HavePayload(index));
+	
+		Iterator itr = peers.entrySet().iterator();
+		while(itr.hasNext())
+		{
+			Map.Entry entry = (Map.Entry)itr.next();
+			Peer temp =(Peer)entry.getValue();
+			temp.getConn().sendMessage(have);
+		}
 	}
 }

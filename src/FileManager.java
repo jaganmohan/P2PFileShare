@@ -38,6 +38,7 @@ public class FileManager
 		fileName = ConfigParser.getFileName();
 		
 		filePiecesOwned = new boolean[noOfFilePieces];
+		
 		if(has)
 		{
 			Arrays.fill(filePiecesOwned, true);
@@ -91,7 +92,7 @@ public class FileManager
 		}
 	}
 
-	public static synchronized void store(PiecePayload piece) 
+	public static synchronized void store(PiecePayload piece) throws Exception
 	{
 		int loc = ConfigParser.getPieceSize() * piece.getIndex();
 		RandomAccessFile fos = null;
@@ -157,9 +158,12 @@ public class FileManager
 	 * @param bitfield Host peer's bitfield
 	 * @return
 	 */
-	public static int requestPiece(byte[] neighborBitfield, byte[] bitfield){
+	public static int requestPiece(byte[] neighborBitfield, byte[] bitfield)
+	{
 		byte[] interesting = new byte[(int)Math.ceil(noOfFilePieces/8)];
+		
 		boolean[] interestingPieces = new boolean[noOfFilePieces];
+		
 		for(int i=0,j=0;i<bitfield.length;i++,j=j+8){
 			interesting[i] = (byte) ((bitfield[i]^neighborBitfield[i])&neighborBitfield[i]);
 			System.arraycopy(FileUtilities.byteToBoolean(interesting[i]), 0, interestingPieces, j, 8);
@@ -170,6 +174,16 @@ public class FileManager
 		}
 		// TODO make it fail safe
 		return 0;
+	}
+	
+	
+	public static boolean isInteresting(int index)
+	{
+		if(filePiecesOwned[index])
+		{
+			return true;
+		}	
+		return false;		
 	}
 	
 	public static boolean hasCompleteFile(){

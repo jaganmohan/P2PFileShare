@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-
-
 /**
  * Contains connection related information between host peer and neighboring peer including object streams
  * to read and write from the connection.
@@ -25,8 +23,6 @@ public class ConnectionHandler extends Thread{
 	
 	private ObjectInputStream sin;
 	
-	private long avgDownloadRate;
-	
 	private int piecesDownloaded;
 	
 	private PeerHandler pHandler;
@@ -40,6 +36,8 @@ public class ConnectionHandler extends Thread{
 		sout = o;
 		sock = s;
 		pHandler = p;
+		piecesDownloaded =0;
+		
 	}
 	
 	public void setSocket(Socket s){
@@ -83,13 +81,16 @@ public class ConnectionHandler extends Thread{
 								HavePayload have = (HavePayload)(recv.mPayload);
 								neighbor.updateBitfield(have.getIndex());
 								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
-								Message interested = new Message(MessageType.INTERESTED,null);
-								sendMessage(interested);
-								//TODO add to interested peers list
-								pHandler.add(neighbor);
+								
+								//Check whether the piece is interesting and send interested message
+								
+								if(FileManager.isInteresting(have.getIndex()))
+								{
+									Message interested = new Message(MessageType.INTERESTED,null);
+									sendMessage(interested);
+								}
 								break;}
 							case REQUEST:{
-								//TODO send requested file piece to neighbor using FileManager
 								int requestedIndex = ((RequestPayload)recv.mPayload).getIndex();
 								byte [] pieceContent = FileManager.get(requestedIndex).getContent();
 								int pieceIndex = FileManager.get(requestedIndex).getIndex();
@@ -97,8 +98,10 @@ public class ConnectionHandler extends Thread{
 								sendMessage(pieceToSend);
 								break;}
 							case INTERESTED:
+								pHandler.add(neighbor);
 								break;
 							case NOT_INTERESTED:
+								pHandler.remove(neighbor);
 								break;
 							case BITFIELD:{
 						    	BitfieldPayload in_payload = (BitfieldPayload)(recv.mPayload);
@@ -113,13 +116,23 @@ public class ConnectionHandler extends Thread{
 								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
 								Message interested = new Message(MessageType.INTERESTED,null);
 								sendMessage(interested);
-						    	// Adding interested peers to peer list of PeerHandler object
-								pHandler.add(neighbor);
+						    	// No need to add peers that you are interested in.
+							
 								break;}
 							case PIECE:{
-								//TODO implement piece additions to the file
-								FileManager.store((PiecePayload)recv.mPayload);
+
+								try
+								{
+									FileManager.store((PiecePayload)recv.mPayload);
+								}catch (Exception e) {
+									// TODO: handle exception
+									e.printStackTrace();
+								}
 								host.updateBitfield(((PiecePayload)recv.mPayload).getIndex());
+								
+								pHandler.sendHaveAll(((PiecePayload)recv.mPayload).getIndex());
+								piecesDownloaded++;
+								
 								break;}
 						}
 					}
@@ -135,7 +148,12 @@ public class ConnectionHandler extends Thread{
 	public void run(){
 		
 		//TODO after p seconds of time interval
-		neighbor.setDownloadSpeed(avgDownloadRate);
+		neighbor.setDownloadSpeed(piecesDownloaded);
+	}
+	
+	public void resetPiecesDownloaded()
+	{
+		piecesDownloaded = 0;
 	}
 	
 }
