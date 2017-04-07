@@ -63,19 +63,19 @@ public class ConnectionHandler extends Thread{
 			public void run(){
 
 				Message recv = null;
+				// flag to check choke and unchoke status
+				boolean flagUnchoke = false;
 				try {
 					recv = (Message) sin.readObject();
 					if(recv != null){
 						switch (recv.getMsgType()){
 							case UNCHOKE:{
-								int pieceIdx = FileManager.requestPiece(neighbor.getBitfield(), host.getBitfield());
-								Payload requestPayload = new RequestPayload(pieceIdx);
-								Message msgRequest = new Message(MessageType.REQUEST, requestPayload);
-								sout.writeObject(msgRequest);
-								sout.flush();}
-								break;
+								flagUnchoke = true;
+								sendRequest();
+								break;}
 							case CHOKE:
 								//TODO stop sending file pieces
+								flagUnchoke = false;
 								break;
 							case HAVE:{
 								HavePayload have = (HavePayload)(recv.mPayload);
@@ -118,7 +118,7 @@ public class ConnectionHandler extends Thread{
 								sendMessage(interested);
 						    	// No need to add peers that you are interested in.
 							
-								break;}
+								break;}							
 							case PIECE:{
 
 								try
@@ -132,7 +132,7 @@ public class ConnectionHandler extends Thread{
 								
 								pHandler.sendHaveAll(((PiecePayload)recv.mPayload).getIndex());
 								piecesDownloaded++;
-								
+								if(flagUnchoke)sendRequest();
 								break;}
 						}
 					}
@@ -140,8 +140,20 @@ public class ConnectionHandler extends Thread{
 					System.out.println(host.getPeerId()+": Error recieving message from "+neighbor.getPeerId());
 					e.printStackTrace();
 				}
-							
 			}
+			
+			void sendRequest(){
+				int pieceIdx = FileManager.requestPiece(neighbor.getBitfield(), host.getBitfield());
+				Payload requestPayload = new RequestPayload(pieceIdx);
+				Message msgRequest = new Message(MessageType.REQUEST, requestPayload);
+				try {
+					sout.writeObject(msgRequest);
+					sout.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
 		}.start();
 	}
 	
