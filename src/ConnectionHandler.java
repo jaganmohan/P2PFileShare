@@ -13,7 +13,7 @@ import java.net.Socket;
  */
 public class ConnectionHandler extends Thread{
 	
-	private Socket sock;
+	//private Socket sock;
 		
 	private Peer host;
 	
@@ -23,28 +23,31 @@ public class ConnectionHandler extends Thread{
 	
 	private ObjectInputStream sin;
 	
+	private ObjectInputStream host_sin;
+	
 	private int piecesDownloaded;
 	
 	private PeerHandler pHandler;
 	
 	public ConnectionHandler(){}
 	
-	public ConnectionHandler(Peer h, Peer n, ObjectInputStream i, ObjectOutputStream o, Socket s, PeerHandler p){
+	public ConnectionHandler(Peer h, Peer n, ObjectInputStream i, ObjectOutputStream o, Socket s, PeerHandler p) throws IOException{
 		host = h;
 		neighbor = n;
 		sin = i;
 		sout = o;
-		sock = s;
+		//sock = s;
 		pHandler = p;
 		piecesDownloaded = 0;
+		host_sin = new ObjectInputStream(n.getHostSocket().getInputStream());
 	}
 	
-	public void setSocket(Socket s){
+	/*public void setSocket(Socket s){
 		sock = s;
-	}
+	}*/
 	
-	public void calculateDownloadRate(){
-		
+	public void setHostInputStream(ObjectInputStream in){
+		host_sin = in;
 	}
 	
 	public void sendMessage(Message msg){
@@ -64,8 +67,9 @@ public class ConnectionHandler extends Thread{
 				Message recv = null;
 				// flag to check choke and unchoke status
 				boolean flagUnchoke = false;
+				//synchronized (host_sin) {
 				try {
-					recv = (Message) sin.readObject();
+					recv = (Message) host_sin.readObject();
 					System.out.println("Received message type: "+ recv.getMsgType() +"from: "+neighbor.getPeerId());
 					if(recv != null){
 						switch (recv.getMsgType()){
@@ -139,8 +143,8 @@ public class ConnectionHandler extends Thread{
 					System.out.println(host.getPeerId()+": Error recieving message from "+neighbor.getPeerId());
 					e.printStackTrace();
 				}
+			//}
 			}
-			
 			/**
 			 * Sends request message with piece index to neighbor
 			 */
@@ -162,10 +166,12 @@ public class ConnectionHandler extends Thread{
 	public void run(){
 		
 		receiveMessage();
-		//TODO after p seconds of time interval
 		neighbor.setDownloadSpeed(piecesDownloaded);
 	}
 	
+	/**
+	 * After p seconds of time interval this will be called to reset download rate
+	 */
 	public void resetPiecesDownloaded()
 	{
 		piecesDownloaded = 0;
