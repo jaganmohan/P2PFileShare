@@ -97,7 +97,7 @@ public class PeerHandler extends Thread{
 						do{
 							Peer p;
 							Random r = new Random();
-							Peer[] prs = (Peer[]) interested.toArray();
+							Peer[] prs = interested.toArray(new Peer[interested.size()]);
 							do{
 								p = prs[r.nextInt(prs.length)];
 							}while(!p.isUnchoked());
