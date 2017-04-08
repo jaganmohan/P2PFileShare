@@ -6,6 +6,16 @@ package src;
  *
  */
 public class Peer {
+package src;
+
+import java.net.Socket;
+
+/**
+ * This stores peer information, each peer object created will correspond to some entry in configuration file
+ * @author Jagan
+ *
+ */
+public class Peer {
 
 	private int peerId;
 	private String hostname;
@@ -15,6 +25,7 @@ public class Peer {
 	private boolean unchoked;
 	private long downloadSpeed;
 	private ConnectionHandler conn;
+	private Socket hostSocket;
 	
 	public int getPeerId() {
 		return peerId;
@@ -97,5 +108,17 @@ public class Peer {
 		byte update = 1;
 		update = (byte)(update << u-1);
 		bitfield[i] = (byte)(bitfield[i]&update);
+	}
+	/**
+	 * @return the hostSocket
+	 */
+	public Socket getHostSocket() {
+		return hostSocket;
+	}
+	/**
+	 * @param hostSocket the hostSocket to set
+	 */
+	public void setHostSocket(Socket hostSocket) {
+		this.hostSocket = hostSocket;
 	}
 }
