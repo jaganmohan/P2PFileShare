@@ -26,9 +26,10 @@ public class PeerHandler extends Thread{
 	
 	public PeerHandler(){}
 	
-	public PeerHandler(ServerSocket s, Peer host){
+	public PeerHandler(ServerSocket s, Peer host, HashMap<Integer,Peer> prs){
 		sSocket = s;
 		hostPeer = host;
+		peers = prs;
 	}
 	
 	public void add(Peer i){
@@ -40,6 +41,10 @@ public class PeerHandler extends Thread{
 		interested.remove(i);
 	}
 	
+	public void setSocket(ServerSocket s){
+		sSocket = s;
+	}
+	
 	public void kPreferredPeers(){
 		
 		long timeout = ConfigParser.getUnchokingInterval()*1000;
@@ -49,30 +54,33 @@ public class PeerHandler extends Thread{
 					synchronized(interested){
 						// reselecting k preferred peers in time intervals of 'UnchokingInterval' from config
 						do{
-							kPeers = new ArrayList<Peer>();
-							// Sorts interested peers with respect to downloading rates only when host does not have the complete file
-							if(!FileManager.hasCompleteFile()){
-								interested.sort(new Comparator<Peer>() {
-									Random r = new Random();
-									@Override
-									public int compare(Peer o1, Peer o2) {
-										if(o1.getDownloadSpeed() == o2.getDownloadSpeed())
-											return r.nextInt(2); //Randomly sequencing equal elements
-										return (int)-(o1.getDownloadSpeed()-o2.getDownloadSpeed());
-									}
-								});
+							System.out.println("Finding k preferred peers");
+							if(interested.size() != 0){
+								kPeers = new ArrayList<Peer>();
+								// Sorts interested peers with respect to downloading rates only when host does not have the complete file
+								if(!FileManager.hasCompleteFile()){
+									interested.sort(new Comparator<Peer>() {
+										Random r = new Random();
+										@Override
+										public int compare(Peer o1, Peer o2) {
+											if(o1.getDownloadSpeed() == o2.getDownloadSpeed())
+												return r.nextInt(2); //Randomly sequencing equal elements
+											return (int)-(o1.getDownloadSpeed()-o2.getDownloadSpeed());
+										}
+									});
+								}
+								Iterator<Peer> it = interested.iterator();
+								for(int i=0; i<ConfigParser.getNumberOfPreferredNeighbors()
+										&& it.hasNext();i++){
+									Peer p = it.next();
+									// chooses peer adds it to k preferred peers list and unchokes them
+									p.getConn().resetPiecesDownloaded();
+									kPeers.add(p);
+									unchokePeer(p);
+								}
+								chokePeers();
 							}
-							Iterator<Peer> it = interested.iterator();
-							for(int i=0; i<ConfigParser.getNumberOfPreferredNeighbors()
-									&& it.hasNext();i++){
-								Peer p = it.next();
-								// chooses peer adds it to k preferred peers list and unchokes them
-								p.getConn().resetPiecesDownloaded();
-								kPeers.add(p);
-								unchokePeer(p);
-							}
-							chokePeers();
-							wait(timeout);
+							Thread.sleep(timeout);
 						}while(!sSocket.isClosed());
 					}
 				}catch(Exception e){
@@ -95,15 +103,18 @@ public class PeerHandler extends Thread{
 					synchronized(interested){
 						// reselecting optimistic peer in time intervals of 'OptimisticUnchokingInterval' from config
 						do{
+							System.out.println("Finding optimistic peer");
 							Peer p;
 							Random r = new Random();
 							Peer[] prs = interested.toArray(new Peer[interested.size()]);
-							do{
-								p = prs[r.nextInt(prs.length)];
-							}while(!p.isUnchoked());
-							optUnchokedPeer = p;
-							unchokePeer(p);
-							wait(timeout);
+							if(interested.size() != 0){
+								do{
+									p = prs[r.nextInt(prs.length)];
+								}while(!p.isUnchoked()); //need to review this condition
+								optUnchokedPeer = p;
+								unchokePeer(p);
+							}
+							Thread.sleep(timeout);
 						}while(!sSocket.isClosed());
 					}
 				}catch(Exception e){
@@ -135,7 +146,7 @@ public class PeerHandler extends Thread{
 		while(itr.hasNext()){
 			Map.Entry entry = (Map.Entry)itr.next();
 			Peer temp =(Peer)entry.getValue();
-			if(!kPeers.contains(temp) && temp != optUnchokedPeer){
+			if(!kPeers.contains(temp) && temp != optUnchokedPeer && temp.getConn() != null){
 				temp.unChoke(false);
 				Message chokeMsg = new Message(MessageType.CHOKE, null);
 				temp.getConn().sendMessage(chokeMsg);
@@ -149,10 +160,10 @@ public class PeerHandler extends Thread{
 		optUnchokePeer();
 	}
 	
-	public HashMap<Integer, Peer> getPeerList()
+	/*public HashMap<Integer, Peer> getPeerList()
 	{
 		return peers;
-	}
+	}*/
 	
 	public void sendHaveAll(int index)
 	{
