@@ -36,13 +36,13 @@ public class PeerProcess extends Peer implements Runnable{
 	public PeerProcess(String pid, String hName, String portno, String present, HashMap<Integer,Peer> peers){
 		super(pid,hName,portno,present);
 		this.peers = peers;
-		pHandler = new PeerHandler(sSocket, this.getInstance());
+		pHandler = new PeerHandler(sSocket, this.getInstance(), peers);
 	}
 	
 	public PeerProcess(int pid, String hName, int portno, boolean present, HashMap<Integer,Peer> peers){
 		super(pid,hName,portno,present);
 		this.peers = peers;
-		pHandler = new PeerHandler(sSocket, this.getInstance());
+		pHandler = new PeerHandler(sSocket, this.getInstance(), peers);
 	}
 	
 	/**
@@ -80,7 +80,6 @@ public class PeerProcess extends Peer implements Runnable{
 				while(!sSocket.isClosed()){
 					try {
 						ConnectionHandler conn = establishConnection();
-						conn.start();
 					} catch (IOException | ClassNotFoundException e) {
 						e.printStackTrace();
 					} catch (Exception e) {
@@ -98,36 +97,39 @@ public class PeerProcess extends Peer implements Runnable{
 	 * @return ConnectionHandler object
 	 * @throws Exception
 	 */
-    public ConnectionHandler establishConnection() throws Exception{
+	public ConnectionHandler establishConnection() throws Exception{
 
-    	Socket lSocket = sSocket.accept();
-    	ObjectInputStream in = new ObjectInputStream(lSocket.getInputStream());
-    	ObjectOutputStream out = new ObjectOutputStream(lSocket.getOutputStream());
+		Socket lSocket = sSocket.accept();
+		ObjectInputStream in = new ObjectInputStream(lSocket.getInputStream());
+		ObjectOutputStream out = new ObjectOutputStream(lSocket.getOutputStream());
 
-    	//Receiving Handshake message
-    	HandShakeMsg incoming = (HandShakeMsg)in.readObject();
-    	if(peers.get(incoming.getPeerId()) == null || !incoming.getHeader().equals(HandShakeMsg.Header)){
-    		System.out.println("Error performing Handshake : PeerId or Header unknown");
-    	}
-    	System.out.println("Received Handshake Message : "+
-    			incoming.getPeerId()+" Header - "+incoming.getHeader());
-    	
-    	// No need to send Handshake message here again, since all peers will send handshake messages to
-    	// neighboring peers in startSender method as well as there is no place we are receiving second handshake
-    	
-    	//Sending Bitfield message
-    	BitfieldPayload out_payload = new BitfieldPayload(fileData.getBitField());
-        out.writeObject(new Message(MessageType.BITFIELD, out_payload));
-        out.flush();
-    	
-    	Peer neighbor = peers.get(incoming.getPeerId());
-		
+		//Receiving Handshake message
+		HandShakeMsg incoming = (HandShakeMsg)in.readObject();
+		if(peers.get(incoming.getPeerId()) == null || !incoming.getHeader().equals(HandShakeMsg.Header)){
+			System.out.println("Error performing Handshake : PeerId or Header unknown");
+		}
+		System.out.println("Received Handshake Message : "+
+				incoming.getPeerId()+" Header - "+incoming.getHeader());
+
+		// No need to send Handshake message here again, since all peers will send handshake messages to
+		// neighboring peers in startSender method as well as there is no place we are receiving second handshake
+
 		//Creating connection irrespective of peers being interested
-		ConnectionHandler conn = new ConnectionHandler(neighbor, peers.get(incoming.getPeerId()),
-				in, out, lSocket, pHandler);
+		Peer neighbor = peers.get(incoming.getPeerId());
+		ConnectionHandler conn = new ConnectionHandler(neighbor, peers.get(incoming.getPeerId()),in, out, lSocket, pHandler);
+		conn.start();
 		neighbor.setConnHandler(conn);
+
+		Thread.sleep(5000);
+		//Sending Bitfield message
+		BitfieldPayload out_payload = new BitfieldPayload(fileData.getBitField());
+		out.writeObject(new Message(MessageType.BITFIELD, out_payload));
+		out.flush();
+		System.out.println("Sending Bitfield Message from: "+
+				getPeerId()+" to: "+incoming.getPeerId());
+
 		return conn;
-    }
+	}
     
 	@Override
 	public void run() {
@@ -140,6 +142,8 @@ public class PeerProcess extends Peer implements Runnable{
     		e.printStackTrace();
     	}
 		startServer();
+		startSender();
+		pHandler.setSocket(sSocket);
 		pHandler.start();
 		
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
