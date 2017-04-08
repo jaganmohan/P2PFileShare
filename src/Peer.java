@@ -1,13 +1,5 @@
 package src;
 
-/**
- * This stores peer information, each peer object created will correspond to some entry in configuration file
- * @author Jagan
- *
- */
-public class Peer {
-package src;
-
 import java.net.Socket;
 
 /**
