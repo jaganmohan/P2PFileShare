@@ -36,8 +36,7 @@ public class ConnectionHandler extends Thread{
 		sout = o;
 		sock = s;
 		pHandler = p;
-		piecesDownloaded =0;
-		
+		piecesDownloaded = 0;
 	}
 	
 	public void setSocket(Socket s){
@@ -67,6 +66,7 @@ public class ConnectionHandler extends Thread{
 				boolean flagUnchoke = false;
 				try {
 					recv = (Message) sin.readObject();
+					System.out.println("Received message type: "+ recv.getMsgType() +"from: "+neighbor.getPeerId());
 					if(recv != null){
 						switch (recv.getMsgType()){
 							case UNCHOKE:{
@@ -82,8 +82,7 @@ public class ConnectionHandler extends Thread{
 								neighbor.updateBitfield(have.getIndex());
 								System.out.println("Peer "+neighbor.getPeerId()+" contains interesting file pieces");
 								
-								//Check whether the piece is interesting and send interested message
-								
+								//Check whether the piece is interesting and send interested message	
 								if(FileManager.isInteresting(have.getIndex()))
 								{
 									Message interested = new Message(MessageType.INTERESTED,null);
@@ -118,7 +117,7 @@ public class ConnectionHandler extends Thread{
 								sendMessage(interested);
 						    	// No need to add peers that you are interested in.
 							
-								break;}							
+								break;}
 							case PIECE:{
 
 								try
@@ -142,6 +141,9 @@ public class ConnectionHandler extends Thread{
 				}
 			}
 			
+			/**
+			 * Sends request message with piece index to neighbor
+			 */
 			void sendRequest(){
 				int pieceIdx = FileManager.requestPiece(neighbor.getBitfield(), host.getBitfield());
 				Payload requestPayload = new RequestPayload(pieceIdx);
@@ -159,6 +161,7 @@ public class ConnectionHandler extends Thread{
 	
 	public void run(){
 		
+		receiveMessage();
 		//TODO after p seconds of time interval
 		neighbor.setDownloadSpeed(piecesDownloaded);
 	}
