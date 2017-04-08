@@ -55,6 +55,7 @@ public class PeerProcess extends Peer implements Runnable{
 			//Sending Handshake message to all other peers
 			for (Peer pNeighbor : peers.values()){
 				Socket s = new Socket(pNeighbor.getHostname(), pNeighbor.getPortNo());
+				pNeighbor.setHostSocket(s);				
 				ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 				System.out.println("Handshake Message sent from peer "+getPeerId()+" to peer "+pNeighbor.getPeerId());                    	                   	
 				out.writeObject(new HandShakeMsg(getPeerId()));
@@ -120,7 +121,6 @@ public class PeerProcess extends Peer implements Runnable{
 		conn.start();
 		neighbor.setConnHandler(conn);
 
-		Thread.sleep(5000);
 		//Sending Bitfield message
 		BitfieldPayload out_payload = new BitfieldPayload(fileData.getBitField());
 		out.writeObject(new Message(MessageType.BITFIELD, out_payload));
