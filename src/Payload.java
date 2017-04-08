@@ -1,7 +1,10 @@
 package src;
 
-public abstract class Payload {
+import java.io.Serializable;
+
+public abstract class Payload implements Serializable{
 	
+	private static final long serialVersionUID = -380471140315874320L;
 	private int msgLength = 0;
 	
 	public void setMsgLength(int length){
