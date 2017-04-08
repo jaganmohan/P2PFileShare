@@ -7,8 +7,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Hashtable;
 
+/**
+ * @author Aditya Singh Raghav
+ *
+ */
 public class FileManager 
 {
 	/** File pieces owned by the peer */
@@ -27,11 +32,38 @@ public class FileManager
 	private String fileName = null;
 	private static int fileSize = 0;
 	private static File file = null;
-		
-	public byte[] getBitField() throws Exception {
-		return createBitfield(filePiecesOwned);
-	}
 
+	
+	/**
+	 * Creates bitfield first time during initialization for the peer
+	 * 
+	 * @param pieces boolean representation of pieces available
+	 * @return byte format of the pieces available
+	 * @throws Exception
+	 */
+	public byte[] getBitField() throws Exception {
+		
+		int size = filePiecesOwned.length;
+		BitSet bSet = new BitSet(size);
+		
+		for(int i =0;i<size;i++)
+		{
+			if(filePiecesOwned[i])
+				bSet.set(i);
+			else
+				bSet.clear(i);
+		}
+		return bSet.toByteArray();
+
+	}
+	
+	
+
+	/**
+	 * Constructor for the instance of FileManager
+	 * @param peerid specifies the peerid for the file manager
+	 * @param has specifies if the peer has the file
+	 */
 	public FileManager(int peerid , boolean has) 
 	{
 		directory = "../peer_" + peerid + "/";
@@ -69,6 +101,10 @@ public class FileManager
 		}	
 	}
 	
+	/**
+	 * @param index index of the file piece requested
+	 * @return the file piece that was requested
+	 */
 	public static synchronized PiecePayload get(int index) 
 	{
 		try 
@@ -92,6 +128,11 @@ public class FileManager
 		}
 	}
 
+	
+	/**
+	 * @param piece The file piece that needs to be added to the file
+	 * @throws Exception If unable to add the file piece to the file
+	 */
 	public static synchronized void store(PiecePayload piece) throws Exception
 	{
 		int loc = ConfigParser.getPieceSize() * piece.getIndex();
@@ -111,26 +152,8 @@ public class FileManager
 		}
 	}
 	
-	/**
-	 * Creates bitfield first time during initialization for the peer
-	 * 
-	 * @param pieces boolean representation of pieces available
-	 * @return byte format of the pieces available
-	 * @throws Exception
-	 */
-	public byte[] createBitfield(boolean[] pieces) throws Exception{
-		
-		byte[] bitfield = new byte[noOfFilePieces];
-		//if(noOfPiecesAvailable == 0)
-		//	return null;
-		
-		int counter = 0;
-		for(int i=0;i<noOfFilePieces;i=i+8){
-			bitfield[counter++] = FileUtilities.boolToByte(Arrays.copyOfRange(filePiecesOwned, i, i+8));
-		}
-		
-		return bitfield;
-	}
+
+
 	
 	/**
 	 * Compares bitfields of two peers to decide interesting or not interesting
@@ -141,7 +164,7 @@ public class FileManager
 	 */
 	public static boolean compareBitfields(byte[] neighborBitfield, byte[] bitfield){
 		boolean flag = false;
-		byte[] interesting = new byte[noOfFilePieces];
+		byte[] interesting = new byte[(int)Math.ceil(noOfFilePieces/8)];
 		if(neighborBitfield == null) return flag;
 		for(int i=0;i<bitfield.length;i++){
 			interesting[i] = (byte) ((bitfield[i]^neighborBitfield[i])&neighborBitfield[i]);
@@ -177,6 +200,10 @@ public class FileManager
 	}
 	
 	
+	/**
+	 * @param index The index of the piece we need to check
+	 * @return true if the piece is not available
+	 */
 	public static boolean isInteresting(int index)
 	{
 		if(filePiecesOwned[index])
@@ -186,6 +213,9 @@ public class FileManager
 		return false;		
 	}
 	
+	/**
+	 * @return true if the file has all the file pieces/complete file
+	 */
 	public static boolean hasCompleteFile(){
 		if(noOfPiecesAvailable < noOfFilePieces)
 			return false;
