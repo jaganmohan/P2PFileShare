@@ -18,7 +18,7 @@ public class FileManager
 	private static Hashtable<Integer, Integer> requestedPieces = new Hashtable<Integer, Integer>();
 	
 	/** Number of file pieces the file can be broken into */
-	private static final int noOfFilePieces = (int)Math.ceil(ConfigParser.getFileSize()/ConfigParser.getPieceSize());
+	private static final int noOfFilePieces = (int)Math.ceil((double)ConfigParser.getFileSize()/ConfigParser.getPieceSize());
 
 	/** File pieces available by the peer */
 	private static int noOfPiecesAvailable = 0;
@@ -120,9 +120,9 @@ public class FileManager
 	 */
 	public byte[] createBitfield(boolean[] pieces) throws Exception{
 		
-		byte[] bitfield = new byte[(int)Math.ceil(noOfFilePieces/8)];
-		if(noOfPiecesAvailable == 0)
-			return null;
+		byte[] bitfield = new byte[noOfFilePieces];
+		//if(noOfPiecesAvailable == 0)
+		//	return null;
 		
 		int counter = 0;
 		for(int i=0;i<noOfFilePieces;i=i+8){
