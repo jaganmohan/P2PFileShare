@@ -53,6 +53,8 @@ public class ConnectionHandler extends Thread{
 	public void sendMessage(Message msg){
 		try {
 			sout.writeObject(msg);
+			sout.reset();
+			sout.flush();
 		} catch (IOException e) {
 			System.out.println(host.getPeerId()+": Error sending message to "+neighbor.getPeerId());
 			e.printStackTrace();
